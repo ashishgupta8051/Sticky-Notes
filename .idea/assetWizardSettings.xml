@@ -79,8 +79,8 @@
                                             <option name="values">
                                               <map>
                                                 <entry key="color" value="000000" />
-                                                <entry key="imagePath" value="C:\Users\Ashish Gupta\AndroidStudioProjects\Sticky Notes\app\src\main\res\drawable\image.jpg" />
-                                                <entry key="scalingPercent" value="67" />
+                                                <entry key="imagePath" value="C:\Users\Ashish Gupta\AndroidStudioProjects\Sticky Notes\app\src\main\res\drawable\image.png" />
+                                                <entry key="scalingPercent" value="63" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -113,8 +113,8 @@
                                   <option name="values">
                                     <map>
                                       <entry key="backgroundAssetType" value="COLOR" />
-                                      <entry key="backgroundColor" value="d7dc14" />
-                                      <entry key="outputName" value="ic_launcher_app_icon" />
+                                      <entry key="backgroundColor" value="dc9224" />
+                                      <entry key="outputName" value="app_icon" />
                                     </map>
                                   </option>
                                 </PersistentState>
