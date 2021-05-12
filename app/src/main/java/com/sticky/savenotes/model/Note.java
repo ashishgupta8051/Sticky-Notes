@@ -21,6 +21,7 @@ public class Note {
     @Ignore // we don't want to store this value on database so ignore it
     private boolean checked = false;
 
+    @Ignore
     public Note() {
     }
 
