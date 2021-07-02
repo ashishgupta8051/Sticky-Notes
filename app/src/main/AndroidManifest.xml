@@ -2,17 +2,31 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sticky.savenotes">
 
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/app_icon"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/app_icon_round"
         android:supportsRtl="true"
+        android:hardwareAccelerated="true"
         android:theme="@style/AppTheme">
 
         <activity
             android:name="com.sticky.savenotes.EditNoteActivity"
-            android:parentActivityName="com.sticky.savenotes.MainActivity" />
+            android:parentActivityName="com.sticky.savenotes.MainActivity"
+            android:hardwareAccelerated="true"/>
+
+        <activity
+            android:name="com.sticky.savenotes.MainActivity"
+            android:label="@string/app_name"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:hardwareAccelerated="true"/>
+
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-7419751706380309~6344241175"/>
 
         <activity android:name="com.sticky.savenotes.splashscreen">
                 <intent-filter>
@@ -22,10 +36,6 @@
                 </intent-filter>
         </activity>
 
-        <activity
-            android:name="com.sticky.savenotes.MainActivity"
-            android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoActionBar"/>
     </application>
 
 </manifest>

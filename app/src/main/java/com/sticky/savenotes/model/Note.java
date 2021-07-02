@@ -5,10 +5,6 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
-/**
- * Created by ixi.Dv on 13/05/2018.
- */
-
 @Entity(tableName = "notes")
 public class Note {
     @PrimaryKey(autoGenerate = true)

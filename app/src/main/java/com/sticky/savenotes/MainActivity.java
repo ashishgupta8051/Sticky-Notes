@@ -1,11 +1,14 @@
 package com.sticky.savenotes;
 
+import android.annotation.SuppressLint;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
 import android.view.ActionMode;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -13,6 +16,7 @@ import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -20,6 +24,15 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.initialization.InitializationStatus;
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.sticky.savenotes.adapters.NotesAdapter;
 import com.sticky.savenotes.callbacks.MainActionModeCallback;
@@ -56,6 +69,9 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
     public static final String THEME_Key = "app_theme";
     public static final String APP_PREFERENCES="notepad_settings";
     private int theme;
+    private Handler handler;
+    private InterstitialAd mInterstitialAd;
+    public static final String AD_UNIT_ID = "ca-app-pub-7419751706380309/6152669483";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,16 +90,80 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         recyclerView.setLayoutManager(linearLayoutManager);
 
         // init fab Button
-        fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // TODO: 13/05/2018  add new note
                 onAddNewNote();
             }
         });
 
         dao = NotesDB.getInstance(this).notesDao();
+
+        //Initialize Ad
+        MobileAds.initialize(this, new OnInitializationCompleteListener() {
+            @Override
+            public void onInitializationComplete(InitializationStatus initializationStatus) {
+            }
+        });
+
+        showAd();
+    }
+
+    private void showAd() {
+        AdRequest adRequest = new AdRequest.Builder().build();
+        InterstitialAd.load(
+                this,
+                AD_UNIT_ID,
+                adRequest,
+                new InterstitialAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                        mInterstitialAd = interstitialAd;
+                        Log.e(TAG, "onAdLoaded");
+
+                        //For showing ad
+                        if (mInterstitialAd != null) {
+                            mInterstitialAd.show(MainActivity.this);
+                        } else {
+                            Toast.makeText(MainActivity.this, "Ad did not load", Toast.LENGTH_SHORT).show();
+                        }
+
+                        //Full screen ad
+                        mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                                    @Override
+                                    public void onAdDismissedFullScreenContent() {
+                                        mInterstitialAd = null;
+                                        Log.e("TAG", "The ad was dismissed.");
+                                    }
+
+                                    @Override
+                                    public void onAdFailedToShowFullScreenContent(AdError adError) {
+                                        mInterstitialAd = null;
+                                        Log.e("TAG", "The ad failed to show.");
+                                    }
+
+                                    @Override
+                                    public void onAdShowedFullScreenContent() {
+                                        Log.e("TAG", "The ad was shown.");
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        Log.e(TAG, loadAdError.getMessage());
+                        mInterstitialAd = null;
+
+                        @SuppressLint("DefaultLocale") String error =
+                                String.format(
+                                        "domain: %s, code: %d, message: %s",
+                                        loadAdError.getDomain(), loadAdError.getCode(), loadAdError.getMessage());
+                        Toast.makeText(
+                                MainActivity.this, "onAdFailedToLoad() with error: " + error, Toast.LENGTH_SHORT)
+                                .show();
+                    }
+                });
     }
 
     private void setupNavigation(Bundle savedInstanceState, Toolbar toolbar) {
@@ -165,9 +245,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         swipeToDeleteHelper.attachToRecyclerView(recyclerView);
     }
 
-    /**
-     * when no notes show msg in main_layout
-     */
     private void showEmptyView() {
         if (notes.size() == 0) {
             this.recyclerView.setVisibility(View.GONE);
@@ -179,36 +256,102 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         }
     }
 
-    /**
-     * Start EditNoteActivity.class for Create New Note
-     */
     private void onAddNewNote() {
         startActivity(new Intent(this, EditNoteActivity.class));
 
     }
 
+    private void onShareNote() {
+        Note note = adapter.getCheckedNotes().get(0);
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("text/plain");
+        String notetext = note.getNoteText() + "\n\n Create on : " +
+                NoteUtils.dateFromLong(note.getNoteDate()) + "\n  By :" +
+                getString(R.string.app_name);
+        share.putExtra(Intent.EXTRA_TEXT, notetext);
+        startActivity(share);
+
+
+    }
+
+    private void onDeleteMultiNotes() {
+        List<Note> chackedNotes = adapter.getCheckedNotes();
+        if (chackedNotes.size() != 0) {
+            for (Note note : chackedNotes) {
+                dao.deleteNote(note);
+            }
+            // refresh Notes
+            loadNotes();
+            Toast.makeText(this, chackedNotes.size() + " Note(s) Delete successfully !", Toast.LENGTH_SHORT).show();
+        } else Toast.makeText(this, "No Note(s) selected", Toast.LENGTH_SHORT).show();
+
+        //adapter.setMultiCheckMode(false);
+    }
+
+    // swipe to right or to left to delete
+    private ItemTouchHelper swipeToDeleteHelper = new ItemTouchHelper(
+            new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+                @Override
+                public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+                    return false;
+                }
+
+                @Override
+                public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                    if (notes != null) {
+                        // get swiped note
+                        Note swipedNote = notes.get(viewHolder.getAdapterPosition());
+                        if (swipedNote != null) {
+                            swipeToDelete(swipedNote, viewHolder);
+
+                        }
+
+                    }
+                }
+            });
+
+    private void swipeToDelete(final Note swipedNote, final RecyclerView.ViewHolder viewHolder) {
+        new AlertDialog.Builder(MainActivity.this)
+                .setMessage("Delete Note?")
+                .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dao.deleteNote(swipedNote);
+                        notes.remove(swipedNote);
+                        adapter.notifyItemRemoved(viewHolder.getAdapterPosition());
+                        showEmptyView();
+
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        recyclerView.getAdapter().notifyItemChanged(viewHolder.getAdapterPosition());
+
+
+                    }
+                })
+                .setCancelable(false)
+                .create().show();
+
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
-
 
     @Override
     protected void onResume() {
@@ -218,7 +361,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
 
     @Override
     public void onNoteClick(Note note) {
-        // TODO: 22/07/2018  note clicked : edit note
         Intent edit = new Intent(this, EditNoteActivity.class);
         edit.putExtra(NOTE_EXTRA_Key, note.getId());
         startActivity(edit);
@@ -227,7 +369,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
 
     @Override
     public void onNoteLongClick(Note note) {
-        // TODO: 22/07/2018 note long clicked : delete , share ..
         note.setChecked(true);
         chackedCount = 1;
         adapter.setMultiCheckMode(true);
@@ -281,38 +422,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         actionModeCallback.setCount(chackedCount + "/" + notes.size());
     }
 
-    private void onShareNote() {
-        // TODO: 22/07/2018  we need share just one Note not multi
-
-        Note note = adapter.getCheckedNotes().get(0);
-        // TODO: 22/07/2018 do your logic here to share note ; on social or something else
-        Intent share = new Intent(Intent.ACTION_SEND);
-        share.setType("text/plain");
-        String notetext = note.getNoteText() + "\n\n Create on : " +
-                NoteUtils.dateFromLong(note.getNoteDate()) + "\n  By :" +
-                getString(R.string.app_name);
-        share.putExtra(Intent.EXTRA_TEXT, notetext);
-        startActivity(share);
-
-
-    }
-
-    private void onDeleteMultiNotes() {
-        // TODO: 22/07/2018 delete multi notes
-
-        List<Note> chackedNotes = adapter.getCheckedNotes();
-        if (chackedNotes.size() != 0) {
-            for (Note note : chackedNotes) {
-                dao.deleteNote(note);
-            }
-            // refresh Notes
-            loadNotes();
-            Toast.makeText(this, chackedNotes.size() + " Note(s) Delete successfully !", Toast.LENGTH_SHORT).show();
-        } else Toast.makeText(this, "No Note(s) selected", Toast.LENGTH_SHORT).show();
-
-        //adapter.setMultiCheckMode(false);
-    }
-
     @Override
     public void onActionModeFinished(ActionMode mode) {
         super.onActionModeFinished(mode);
@@ -322,61 +431,8 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         fab.setVisibility(View.VISIBLE);
     }
 
-    // swipe to right or to left te delete
-    private ItemTouchHelper swipeToDeleteHelper = new ItemTouchHelper(
-            new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-                @Override
-                public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
-                    return false;
-                }
-
-                @Override
-                public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-                    // TODO: 28/09/2018 delete note when swipe
-
-                    if (notes != null) {
-                        // get swiped note
-                        Note swipedNote = notes.get(viewHolder.getAdapterPosition());
-                        if (swipedNote != null) {
-                            swipeToDelete(swipedNote, viewHolder);
-
-                        }
-
-                    }
-                }
-            });
-
-    private void swipeToDelete(final Note swipedNote, final RecyclerView.ViewHolder viewHolder) {
-        new AlertDialog.Builder(MainActivity.this)
-                .setMessage("Delete Note?")
-                .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        // TODO: 28/09/2018 delete note
-                        dao.deleteNote(swipedNote);
-                        notes.remove(swipedNote);
-                        adapter.notifyItemRemoved(viewHolder.getAdapterPosition());
-                        showEmptyView();
-
-                    }
-                })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        // TODO: 28/09/2018  Undo swipe and restore swipedNote
-                        recyclerView.getAdapter().notifyItemChanged(viewHolder.getAdapterPosition());
-
-
-                    }
-                })
-                .setCancelable(false)
-                .create().show();
-
-    }
-
     @Override
     public boolean onItemClick(View view, int position, IDrawerItem drawerItem) {
-
         Toast.makeText(this, "" + position, Toast.LENGTH_SHORT).show();
         return false;
     }

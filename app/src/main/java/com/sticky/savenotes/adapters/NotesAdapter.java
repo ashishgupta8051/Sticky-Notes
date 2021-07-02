@@ -17,9 +17,6 @@ import com.sticky.savenotes.utils.NoteUtils;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by ixi.Dv on 13/05/2018.
- */
 public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteHolder> {
     private Context context;
     private ArrayList<Note> notes;

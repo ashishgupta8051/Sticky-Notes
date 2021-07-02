@@ -59,7 +59,6 @@ public class EditNoteActivity extends AppCompatActivity {
     }
 
     private void onSaveNote() {
-        // TODO: 20/06/2018 Save Note
         String text = inputNote.getText().toString();
         if (!text.isEmpty()) {
             long date = new Date().getTime(); // get  system time

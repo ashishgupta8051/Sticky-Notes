@@ -7,9 +7,6 @@ import android.content.Context;
 
 import com.sticky.savenotes.model.Note;
 
-/**
- * Created by ixi.Dv on 20/06/2018.
- */
 @Database(entities = Note.class, version = 1)
 public abstract class NotesDB extends RoomDatabase {
     public abstract NotesDao notesDao();

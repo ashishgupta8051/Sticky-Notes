@@ -2,9 +2,6 @@ package com.sticky.savenotes.callbacks;
 
 import com.sticky.savenotes.model.Note;
 
-/**
- * Created by ixi.Dv on 22/07/2018.
- */
 public interface NoteEventListener {
     /**
      * call wen note clicked.
