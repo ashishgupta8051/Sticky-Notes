@@ -29,6 +29,7 @@
             android:textSize="34dp"
             android:textColor="@color/wifi_text_color"
             android:textStyle="bold"
+            android:fontFamily="serif"
             android:layout_gravity="center"
             />
 
@@ -39,6 +40,7 @@
             android:layout_height="wrap_content"
             android:text="@string/offline_text_2"
             android:textSize="18dp"
+            android:fontFamily="serif"
             android:layout_marginTop="10dp"
             android:textColor="@color/wifi_text_color"
             android:layout_gravity="center"
@@ -51,6 +53,7 @@
             android:layout_marginLeft="40dp"
             android:layout_marginRight="40dp"
             android:text="@string/try_again_btn"
+            android:fontFamily="serif"
             android:textColor="@color/md_white_1000"
             android:backgroundTint="@color/wifi_text_color"
             android:layout_marginTop="20dp"/>

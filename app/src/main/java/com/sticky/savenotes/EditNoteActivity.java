@@ -98,7 +98,7 @@ public class EditNoteActivity extends AppCompatActivity {
             public void run() {
                 showAds();
             }
-        },1000 * 60 *5);
+        },1000 * 60 * 2);
     }
 
     @Override

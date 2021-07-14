@@ -30,13 +30,13 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-6045011449826065~4665736530"/>
 
-        <receiver android:name=".utils.InternetCheckService">
+       <!-- <receiver android:name=".utils.InternetCheckService">
             <intent-filter>
                 <action android:name="android.net.wifi.WIFI_STATE_CHANGED"/>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE"
                     tools:ignore="BatteryLife" />
             </intent-filter>
-        </receiver>
+        </receiver>-->
 
         <activity android:name="com.sticky.savenotes.splashscreen">
                 <intent-filter>

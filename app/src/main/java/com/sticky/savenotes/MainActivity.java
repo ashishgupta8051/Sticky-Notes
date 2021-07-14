@@ -169,11 +169,12 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
         registerReceiver(broadcastReceiver,intentFilter);
 
-        //Show Ads
-        showAds();
-
-        //Show Ads after 5 Min
-        showAdsAgain();
+        new Handler(Looper.myLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                showAds();
+            }
+        }, 1000 * 60);
     }
 
     @Override
@@ -456,16 +457,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
                     }
                 });
     }
-
-    private void showAdsAgain() {
-        new Handler(Looper.myLooper()).postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                showAds();
-            }
-        }, 1000 * 60 * 5);
-    }
-
 }
 
 
