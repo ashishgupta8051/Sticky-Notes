@@ -20,7 +20,6 @@
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
-
             <!-- just change the parent -->
     <style name="AppTheme.Dark" parent="MaterialDrawerTheme">
         <item name="colorPrimary">@color/colorPrimary_dark</item>

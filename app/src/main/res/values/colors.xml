@@ -9,4 +9,7 @@
     <color name="colorPrimary_dark">#212121</color>
     <color name="colorAccent_dark" >#FF9800</color>
     <color name="colorPrimaryDark_dark" >#DE000000</color>
+
+    <color name="wifi_background_color">#EEE3AB</color>
+    <color name="wifi_text_color">#554911</color>
 </resources>

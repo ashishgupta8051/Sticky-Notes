@@ -5,4 +5,9 @@
     <string name="share_note">Share Note</string>
     <string name="delete_notes">Delete Notes</string>
     <string name="no_notes">Empty Notes !</string>
+
+    //Internet Alert Dialog
+    <string name="offline_text_2">You are Offline please check your internet connection.</string>
+    <string name="offline_text_1">OOPS !!!</string>
+    <string name="try_again_btn">Try Again</string>
 </resources>

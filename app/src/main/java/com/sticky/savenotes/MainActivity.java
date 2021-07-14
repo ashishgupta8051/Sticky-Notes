@@ -2,12 +2,16 @@ package com.sticky.savenotes;
 
 import android.annotation.SuppressLint;
 import android.app.TaskStackBuilder;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.ActionMode;
 import android.view.Menu;
@@ -40,6 +44,7 @@ import com.sticky.savenotes.callbacks.NoteEventListener;
 import com.sticky.savenotes.database.NotesDB;
 import com.sticky.savenotes.database.NotesDao;
 import com.sticky.savenotes.model.Note;
+import com.sticky.savenotes.utils.InternetCheckService;
 import com.sticky.savenotes.utils.NoteUtils;
 import com.mikepenz.materialdrawer.AccountHeader;
 import com.mikepenz.materialdrawer.AccountHeaderBuilder;
@@ -69,9 +74,9 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
     public static final String THEME_Key = "app_theme";
     public static final String APP_PREFERENCES="notepad_settings";
     private int theme;
-    private Handler handler;
     private InterstitialAd mInterstitialAd;
-    public static final String AD_UNIT_ID = "ca-app-pub-7419751706380309/6152669483";
+    private static final String AD_UNIT_ID = "ca-app-pub-6045011449826065/8103839544";
+    private BroadcastReceiver broadcastReceiver = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +87,15 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        broadcastReceiver = new InternetCheckService();
+
+        //Initialize MobileAds
+        MobileAds.initialize(this, new OnInitializationCompleteListener() {
+            @Override
+            public void onInitializationComplete(InitializationStatus initializationStatus) {
+            }
+        });
 
         setupNavigation(savedInstanceState, toolbar);
         // init recyclerView
@@ -99,193 +113,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         });
 
         dao = NotesDB.getInstance(this).notesDao();
-
-        //Initialize Ad
-        MobileAds.initialize(this, new OnInitializationCompleteListener() {
-            @Override
-            public void onInitializationComplete(InitializationStatus initializationStatus) {
-            }
-        });
-
-        showAd();
-    }
-
-    private void showAd() {
-        AdRequest adRequest = new AdRequest.Builder().build();
-        InterstitialAd.load(
-                this,
-                AD_UNIT_ID,
-                adRequest,
-                new InterstitialAdLoadCallback() {
-                    @Override
-                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
-                        mInterstitialAd = interstitialAd;
-                        Log.e(TAG, "onAdLoaded");
-
-                        //For showing ad
-                        if (mInterstitialAd != null) {
-                            mInterstitialAd.show(MainActivity.this);
-                        } else {
-                            Toast.makeText(MainActivity.this, "Ad did not load", Toast.LENGTH_SHORT).show();
-                        }
-
-                        //Full screen ad
-                        mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-                                    @Override
-                                    public void onAdDismissedFullScreenContent() {
-                                        mInterstitialAd = null;
-                                        Log.e("TAG", "The ad was dismissed.");
-                                    }
-
-                                    @Override
-                                    public void onAdFailedToShowFullScreenContent(AdError adError) {
-                                        mInterstitialAd = null;
-                                        Log.e("TAG", "The ad failed to show.");
-                                    }
-
-                                    @Override
-                                    public void onAdShowedFullScreenContent() {
-                                        Log.e("TAG", "The ad was shown.");
-                                    }
-                                });
-                    }
-
-                    @Override
-                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                        Log.e(TAG, loadAdError.getMessage());
-                        mInterstitialAd = null;
-
-                        @SuppressLint("DefaultLocale") String error =
-                                String.format(
-                                        "domain: %s, code: %d, message: %s",
-                                        loadAdError.getDomain(), loadAdError.getCode(), loadAdError.getMessage());
-                        Toast.makeText(
-                                MainActivity.this, "onAdFailedToLoad() with error: " + error, Toast.LENGTH_SHORT)
-                                .show();
-                    }
-                });
-    }
-
-    private void setupNavigation(Bundle savedInstanceState, Toolbar toolbar) {
-
-        // Navigation menu items
-       // List<IDrawerItem> iDrawerItems = new ArrayList<>(); fix error : removed on materialdrawer 7.0.0
-        List<IDrawerItem<?>> iDrawerItems = new ArrayList<>();
-        iDrawerItems.add(new PrimaryDrawerItem().withName("Home").withIcon(R.drawable.ic_home_black_24dp));
-        iDrawerItems.add(new PrimaryDrawerItem().withName("Notes").withIcon(R.drawable.ic_note_black_24dp));
-
-        // sticky DrawItems ; footer menu items
-
-       // List<IDrawerItem> stockyItems = new ArrayList<>(); removed on materialdrawer 7.0.0
-        List<IDrawerItem<?>> stockyItems = new ArrayList<>();
-
-        SwitchDrawerItem switchDrawerItem = new SwitchDrawerItem()
-                .withName("Dark Theme")
-                .withChecked(theme == R.style.AppTheme_Dark)
-                .withIcon(R.drawable.ic_dark_theme)
-                .withOnCheckedChangeListener(new OnCheckedChangeListener() {
-                    @Override
-                    public void onCheckedChanged(IDrawerItem drawerItem, CompoundButton buttonView, boolean isChecked) {
-                        // TODO: 02/10/2018 change to darck theme and save it to settings
-                        if (isChecked) {
-                            settings.edit().putInt(THEME_Key, R.style.AppTheme_Dark).apply();
-                        } else {
-                            settings.edit().putInt(THEME_Key, R.style.AppTheme).apply();
-                        }
-
-                        // recreate app or the activity // if it's not working follow this steps
-                        // MainActivity.this.recreate();
-
-                        // this lines means wi want to close the app and open it again to change theme
-                        TaskStackBuilder.create(MainActivity.this)
-                                .addNextIntent(new Intent(MainActivity.this, MainActivity.class))
-                                .addNextIntent(getIntent()).startActivities();
-                    }
-                });
-
-        stockyItems.add(new PrimaryDrawerItem().withName("Settings").withIcon(R.drawable.ic_settings_black_24dp));
-        stockyItems.add(switchDrawerItem);
-
-        // navigation menu header
-        AccountHeader header = new AccountHeaderBuilder().withActivity(this)
-                .addProfiles(new ProfileDrawerItem()
-                        .withEmail("Save your notes")
-                        .withName("Sticky Notes")
-                        .withIcon(R.drawable.image))
-                .withSavedInstance(savedInstanceState)
-                .withHeaderBackground(R.drawable.ic_launcher_background)
-                .withSelectionListEnabledForSingleProfile(false) // we need just one profile
-                .build();
-
-        // Navigation drawer
-        new DrawerBuilder()
-                .withActivity(this) // activity main
-                .withToolbar(toolbar) // toolbar
-                .withSavedInstance(savedInstanceState) // saveInstance of activity
-                .withDrawerItems(iDrawerItems) // menu items
-                .withTranslucentNavigationBar(true)
-                .withStickyDrawerItems(stockyItems) // footer items
-                .withAccountHeader(header) // header of navigation
-                .withOnDrawerItemClickListener(this) // listener for menu items click
-                .build();
-
-    }
-
-    private void loadNotes() {
-        this.notes = new ArrayList<>();
-        List<Note> list = dao.getNotes();// get All notes from DataBase
-        this.notes.addAll(list);
-        this.adapter = new NotesAdapter(this, this.notes);
-        // set listener to adapter
-        this.adapter.setListener(this);
-        this.recyclerView.setAdapter(adapter);
-        showEmptyView();
-        // add swipe helper to recyclerView
-
-        swipeToDeleteHelper.attachToRecyclerView(recyclerView);
-    }
-
-    private void showEmptyView() {
-        if (notes.size() == 0) {
-            this.recyclerView.setVisibility(View.GONE);
-            findViewById(R.id.empty_notes_view).setVisibility(View.VISIBLE);
-
-        } else {
-            this.recyclerView.setVisibility(View.VISIBLE);
-            findViewById(R.id.empty_notes_view).setVisibility(View.GONE);
-        }
-    }
-
-    private void onAddNewNote() {
-        startActivity(new Intent(this, EditNoteActivity.class));
-
-    }
-
-    private void onShareNote() {
-        Note note = adapter.getCheckedNotes().get(0);
-        Intent share = new Intent(Intent.ACTION_SEND);
-        share.setType("text/plain");
-        String notetext = note.getNoteText() + "\n\n Create on : " +
-                NoteUtils.dateFromLong(note.getNoteDate()) + "\n  By :" +
-                getString(R.string.app_name);
-        share.putExtra(Intent.EXTRA_TEXT, notetext);
-        startActivity(share);
-
-
-    }
-
-    private void onDeleteMultiNotes() {
-        List<Note> chackedNotes = adapter.getCheckedNotes();
-        if (chackedNotes.size() != 0) {
-            for (Note note : chackedNotes) {
-                dao.deleteNote(note);
-            }
-            // refresh Notes
-            loadNotes();
-            Toast.makeText(this, chackedNotes.size() + " Note(s) Delete successfully !", Toast.LENGTH_SHORT).show();
-        } else Toast.makeText(this, "No Note(s) selected", Toast.LENGTH_SHORT).show();
-
-        //adapter.setMultiCheckMode(false);
     }
 
     // swipe to right or to left to delete
@@ -334,6 +161,25 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
                 .setCancelable(false)
                 .create().show();
 
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(broadcastReceiver,intentFilter);
+
+        //Show Ads
+        showAds();
+
+        //Show Ads after 5 Min
+        showAdsAgain();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unregisterReceiver(broadcastReceiver);
     }
 
     @Override
@@ -436,6 +282,190 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         Toast.makeText(this, "" + position, Toast.LENGTH_SHORT).show();
         return false;
     }
+
+    private void setupNavigation(Bundle savedInstanceState, Toolbar toolbar) {
+
+        // Navigation menu items
+        // List<IDrawerItem> iDrawerItems = new ArrayList<>(); fix error : removed on materialdrawer 7.0.0
+        List<IDrawerItem<?>> iDrawerItems = new ArrayList<>();
+        iDrawerItems.add(new PrimaryDrawerItem().withName("Home").withIcon(R.drawable.ic_home_black_24dp));
+        iDrawerItems.add(new PrimaryDrawerItem().withName("Notes").withIcon(R.drawable.ic_note_black_24dp));
+
+        // sticky DrawItems ; footer menu items
+
+        // List<IDrawerItem> stockyItems = new ArrayList<>(); removed on materialdrawer 7.0.0
+        List<IDrawerItem<?>> stockyItems = new ArrayList<>();
+
+        SwitchDrawerItem switchDrawerItem = new SwitchDrawerItem()
+                .withName("Dark Theme")
+                .withChecked(theme == R.style.AppTheme_Dark)
+                .withIcon(R.drawable.ic_dark_theme)
+                .withOnCheckedChangeListener(new OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(IDrawerItem drawerItem, CompoundButton buttonView, boolean isChecked) {
+                        // TODO: 02/10/2018 change to darck theme and save it to settings
+                        if (isChecked) {
+                            settings.edit().putInt(THEME_Key, R.style.AppTheme_Dark).apply();
+                        } else {
+                            settings.edit().putInt(THEME_Key, R.style.AppTheme).apply();
+                        }
+
+                        // recreate app or the activity // if it's not working follow this steps
+                        // MainActivity.this.recreate();
+
+                        // this lines means wi want to close the app and open it again to change theme
+                        TaskStackBuilder.create(MainActivity.this)
+                                .addNextIntent(new Intent(MainActivity.this, MainActivity.class))
+                                .addNextIntent(getIntent()).startActivities();
+                    }
+                });
+
+        stockyItems.add(new PrimaryDrawerItem().withName("Settings").withIcon(R.drawable.ic_settings_black_24dp));
+        stockyItems.add(switchDrawerItem);
+
+        // navigation menu header
+        AccountHeader header = new AccountHeaderBuilder().withActivity(this)
+                .addProfiles(new ProfileDrawerItem()
+                        .withEmail("Save your notes")
+                        .withName("Sticky Notes")
+                        .withIcon(R.drawable.app_icon))
+                .withSavedInstance(savedInstanceState)
+                .withHeaderBackground(R.drawable.ic_launcher_background)
+                .withSelectionListEnabledForSingleProfile(false) // we need just one profile
+                .build();
+
+        // Navigation drawer
+        new DrawerBuilder()
+                .withActivity(this) // activity main
+                .withToolbar(toolbar) // toolbar
+                .withSavedInstance(savedInstanceState) // saveInstance of activity
+                .withDrawerItems(iDrawerItems) // menu items
+                .withTranslucentNavigationBar(true)
+                .withStickyDrawerItems(stockyItems) // footer items
+                .withAccountHeader(header) // header of navigation
+                .withOnDrawerItemClickListener(this) // listener for menu items click
+                .build();
+
+    }
+
+    private void loadNotes() {
+        this.notes = new ArrayList<>();
+        List<Note> list = dao.getNotes();// get All notes from DataBase
+        this.notes.addAll(list);
+        this.adapter = new NotesAdapter(this, this.notes);
+        // set listener to adapter
+        this.adapter.setListener(this);
+        this.recyclerView.setAdapter(adapter);
+        showEmptyView();
+        // add swipe helper to recyclerView
+
+        swipeToDeleteHelper.attachToRecyclerView(recyclerView);
+    }
+
+    private void showEmptyView() {
+        if (notes.size() == 0) {
+            this.recyclerView.setVisibility(View.GONE);
+            findViewById(R.id.empty_notes_view).setVisibility(View.VISIBLE);
+
+        } else {
+            this.recyclerView.setVisibility(View.VISIBLE);
+            findViewById(R.id.empty_notes_view).setVisibility(View.GONE);
+        }
+    }
+
+    private void onAddNewNote() {
+        startActivity(new Intent(this, EditNoteActivity.class));
+
+    }
+
+    private void onShareNote() {
+        Note note = adapter.getCheckedNotes().get(0);
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("text/plain");
+        String notetext = note.getNoteText() + "\n\n Create on : " +
+                NoteUtils.dateFromLong(note.getNoteDate()) + "\n  By :" +
+                getString(R.string.app_name);
+        share.putExtra(Intent.EXTRA_TEXT, notetext);
+        startActivity(share);
+
+
+    }
+
+    private void onDeleteMultiNotes() {
+        List<Note> chackedNotes = adapter.getCheckedNotes();
+        if (chackedNotes.size() != 0) {
+            for (Note note : chackedNotes) {
+                dao.deleteNote(note);
+            }
+            // refresh Notes
+            loadNotes();
+            Toast.makeText(this, chackedNotes.size() + " Note(s) Delete successfully !", Toast.LENGTH_SHORT).show();
+        } else Toast.makeText(this, "No Note(s) selected", Toast.LENGTH_SHORT).show();
+
+        //adapter.setMultiCheckMode(false);
+    }
+
+    private void showAds() {
+        AdRequest adRequest = new AdRequest.Builder().build();
+        InterstitialAd.load(
+                this,
+                AD_UNIT_ID,
+                adRequest,
+                new InterstitialAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                        mInterstitialAd = interstitialAd;
+                        mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                            @Override
+                            public void onAdDismissedFullScreenContent() {
+                                mInterstitialAd = null;
+                                Log.d("TAG", "The ad was dismissed.");
+                            }
+
+                            @Override
+                            public void onAdFailedToShowFullScreenContent(AdError adError) {
+                                mInterstitialAd = null;
+                                Log.d("TAG", "The ad failed to show.");
+                            }
+
+                            @Override
+                            public void onAdShowedFullScreenContent() {
+                                Log.d("TAG", "The ad was shown.");
+                            }
+                        });
+
+                        if (mInterstitialAd != null) {
+                            mInterstitialAd.show(MainActivity.this);
+                        } else {
+                            Toast.makeText(MainActivity.this, "Ad did not load", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        Log.i(TAG, loadAdError.getMessage());
+                        mInterstitialAd = null;
+
+                        @SuppressLint("DefaultLocale") String error =
+                                String.format(
+                                        "domain: %s, code: %d, message: %s",
+                                        loadAdError.getDomain(), loadAdError.getCode(), loadAdError.getMessage());
+                        Toast.makeText(
+                                MainActivity.this, "onAdFailedToLoad() with error: " + error, Toast.LENGTH_SHORT)
+                                .show();
+                    }
+                });
+    }
+
+    private void showAdsAgain() {
+        new Handler(Looper.myLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                showAds();
+            }
+        }, 1000 * 60 * 5);
+    }
+
 }
 
 
