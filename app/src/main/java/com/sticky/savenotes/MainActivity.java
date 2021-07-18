@@ -28,15 +28,6 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.gms.ads.AdError;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.FullScreenContentCallback;
-import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.initialization.InitializationStatus;
-import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
-import com.google.android.gms.ads.interstitial.InterstitialAd;
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.sticky.savenotes.adapters.NotesAdapter;
 import com.sticky.savenotes.callbacks.MainActionModeCallback;
@@ -74,8 +65,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
     public static final String THEME_Key = "app_theme";
     public static final String APP_PREFERENCES="notepad_settings";
     private int theme;
-    private InterstitialAd mInterstitialAd;
-    private static final String AD_UNIT_ID = "ca-app-pub-6045011449826065/8103839544";
     private BroadcastReceiver broadcastReceiver = null;
 
     @Override
@@ -89,13 +78,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         setSupportActionBar(toolbar);
 
         broadcastReceiver = new InternetCheckService();
-
-        //Initialize MobileAds
-        MobileAds.initialize(this, new OnInitializationCompleteListener() {
-            @Override
-            public void onInitializationComplete(InitializationStatus initializationStatus) {
-            }
-        });
 
         setupNavigation(savedInstanceState, toolbar);
         // init recyclerView
@@ -168,13 +150,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         super.onStart();
         IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
         registerReceiver(broadcastReceiver,intentFilter);
-
-        new Handler(Looper.myLooper()).postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                showAds();
-            }
-        }, 1000 * 60);
     }
 
     @Override
@@ -404,58 +379,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         } else Toast.makeText(this, "No Note(s) selected", Toast.LENGTH_SHORT).show();
 
         //adapter.setMultiCheckMode(false);
-    }
-
-    private void showAds() {
-        AdRequest adRequest = new AdRequest.Builder().build();
-        InterstitialAd.load(
-                this,
-                AD_UNIT_ID,
-                adRequest,
-                new InterstitialAdLoadCallback() {
-                    @Override
-                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
-                        mInterstitialAd = interstitialAd;
-                        mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-                            @Override
-                            public void onAdDismissedFullScreenContent() {
-                                mInterstitialAd = null;
-                                Log.d("TAG", "The ad was dismissed.");
-                            }
-
-                            @Override
-                            public void onAdFailedToShowFullScreenContent(AdError adError) {
-                                mInterstitialAd = null;
-                                Log.d("TAG", "The ad failed to show.");
-                            }
-
-                            @Override
-                            public void onAdShowedFullScreenContent() {
-                                Log.d("TAG", "The ad was shown.");
-                            }
-                        });
-
-                        if (mInterstitialAd != null) {
-                            mInterstitialAd.show(MainActivity.this);
-                        } else {
-                            Toast.makeText(MainActivity.this, "Ad did not load", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-
-                    @Override
-                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                        Log.i(TAG, loadAdError.getMessage());
-                        mInterstitialAd = null;
-
-                        @SuppressLint("DefaultLocale") String error =
-                                String.format(
-                                        "domain: %s, code: %d, message: %s",
-                                        loadAdError.getDomain(), loadAdError.getCode(), loadAdError.getMessage());
-                        Toast.makeText(
-                                MainActivity.this, "onAdFailedToLoad() with error: " + error, Toast.LENGTH_SHORT)
-                                .show();
-                    }
-                });
     }
 }
 

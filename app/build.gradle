@@ -7,8 +7,8 @@ android {
         applicationId "com.sticky.savenotes"
         minSdkVersion 17
         targetSdkVersion 30
-        versionCode 6
-        versionName "5.1"
+        versionCode 7
+        versionName "6.1"
         multiDexEnabled true
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -46,7 +46,4 @@ dependencies {
     implementation('com.mikepenz:materialdrawer:7.0.0@aar') {
         transitive = true
     }
-
-    //Google Ad
-    implementation 'com.google.android.gms:play-services-ads:20.2.0'
 }
