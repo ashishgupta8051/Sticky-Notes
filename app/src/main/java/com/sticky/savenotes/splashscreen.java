@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.view.WindowManager;
 
 public class splashscreen extends AppCompatActivity {
@@ -16,7 +17,7 @@ public class splashscreen extends AppCompatActivity {
 
         this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        new Handler().postDelayed(new Runnable() {
+        new Handler(Looper.myLooper()).postDelayed(new Runnable() {
 
             @Override public void run() {
 

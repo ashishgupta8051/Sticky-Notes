@@ -145,16 +145,18 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
 
     }
 
+
     @Override
-    protected void onStart() {
-        super.onStart();
+    protected void onResume() {
+        super.onResume();
+        loadNotes();
         IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
         registerReceiver(broadcastReceiver,intentFilter);
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
+    protected void onPause() {
+        super.onPause();
         unregisterReceiver(broadcastReceiver);
     }
 
@@ -173,12 +175,6 @@ public class MainActivity extends AppCompatActivity implements NoteEventListener
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        loadNotes();
     }
 
     @Override

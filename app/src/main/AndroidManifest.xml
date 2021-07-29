@@ -26,14 +26,6 @@
             android:theme="@style/AppTheme.NoActionBar"
             android:hardwareAccelerated="true"/>
 
-       <!-- <receiver android:name=".utils.InternetCheckService">
-            <intent-filter>
-                <action android:name="android.net.wifi.WIFI_STATE_CHANGED"/>
-                <action android:name="android.net.conn.CONNECTIVITY_CHANGE"
-                    tools:ignore="BatteryLife" />
-            </intent-filter>
-        </receiver>-->
-
         <activity android:name="com.sticky.savenotes.splashscreen">
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
